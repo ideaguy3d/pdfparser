@@ -46,79 +46,78 @@ class Header
      * @var Document
      */
     protected $document = null;
-
+    
     /**
      * @var Element[]
      */
     protected $elements = null;
-
+    
     /**
-     * @param Element[] $elements   List of elements.
-     * @param Document  $document   Document.
+     * @param Element[] $elements List of elements.
+     * @param Document $document Document.
      */
-    public function __construct($elements = array(), Document $document = null)
-    {
+    public function __construct($elements = [], Document $document = null) {
         $this->elements = $elements;
         $this->document = $document;
     }
-
+    
     /**
      * Returns all elements.
      *
      * @return mixed
      */
-    public function getElements()
-    {
-        foreach ($this->elements as $name => $element) {
+    public function getElements() {
+        foreach($this->elements as $name => $element) {
             $this->resolveXRef($name);
         }
-
+        
         return $this->elements;
     }
-
+    
     /**
      * Used only for debug.
      *
      * @return array
      */
-    public function getElementTypes()
-    {
-        $types = array();
-
-        foreach ($this->elements as $key => $element) {
+    public function getElementTypes() {
+        $types = [];
+        
+        foreach($this->elements as $key => $element) {
             $types[$key] = get_class($element);
         }
-
+        
         return $types;
     }
-
+    
     /**
      * @param bool $deep
      *
      * @return array
      */
-    public function getDetails($deep = true)
-    {
-        $values   = array();
+    public function getDetails($deep = true) {
+        $values = [];
         $elements = $this->getElements();
-
-        foreach ($elements as $key => $element) {
-            if ($element instanceof Header && $deep) {
+        
+        foreach($elements as $key => $element) {
+            if($element instanceof Header && $deep) {
                 $values[$key] = $element->getDetails($deep);
-            } elseif ($element instanceof PDFObject && $deep) {
+            }
+            else if($element instanceof PDFObject && $deep) {
                 $values[$key] = $element->getDetails(false);
-            } elseif ($element instanceof ElementArray) {
-                if ($deep) {
+            }
+            else if($element instanceof ElementArray) {
+                if($deep) {
                     $values[$key] = $element->getDetails();
                 }
-            } elseif ($element instanceof Element) {
-                $values[$key] = (string) $element;
+            }
+            else if($element instanceof Element) {
+                $values[$key] = (string)$element;
             }
         }
-
+        
         return $values;
     }
-
+    
     /**
      * Indicate if an element name is available in header.
      *
@@ -126,29 +125,28 @@ class Header
      *
      * @return bool
      */
-    public function has($name)
-    {
-        if (array_key_exists($name, $this->elements)) {
+    public function has($name) {
+        if(array_key_exists($name, $this->elements)) {
             return true;
-        } else {
+        }
+        else {
             return false;
         }
     }
-
+    
     /**
      * @param string $name
      *
      * @return Element|PDFObject
      */
-    public function get($name)
-    {
-        if (array_key_exists($name, $this->elements)) {
+    public function get($name) {
+        if(array_key_exists($name, $this->elements)) {
             return $this->resolveXRef($name);
         }
-
+        
         return new ElementMissing(null, null);
     }
-
+    
     /**
      * Resolve XRef to object.
      *
@@ -157,49 +155,50 @@ class Header
      * @return Element|PDFObject
      * @throws \Exception
      */
-    protected function resolveXRef($name)
-    {
-        if (($obj = $this->elements[$name]) instanceof ElementXRef && !is_null($this->document)) {
+    protected function resolveXRef($name) {
+        if(($obj = $this->elements[$name]) instanceof ElementXRef && !is_null($this->document)) {
             /** @var ElementXRef $obj */
             $object = $this->document->getObjectById($obj->getId());
-
-            if (is_null($object)) {
+            
+            if(is_null($object)) {
                 return new ElementMissing(null, null);
             }
-
+            
             // Update elements list for future calls.
             $this->elements[$name] = $object;
         }
-
+        
         return $this->elements[$name];
     }
-
+    
     /**
-     * @param string   $content  The content to parse
+     * @param string $content The content to parse
      * @param Document $document The document
-     * @param int      $position The new position of the cursor after parsing
+     * @param int $position The new position of the cursor after parsing
      *
      * @return Header
      */
-    public static function parse($content, Document $document, &$position = 0)
-    {
+    public static function parse($content, Document $document, &$position = 0) {
         /** @var Header $header */
-        if (substr(trim($content), 0, 2) == '<<') {
+        if(substr(trim($content), 0, 2) == '<<') {
             $header = ElementStruct::parse($content, $document, $position);
-        } else {
+        }
+        else {
             $elements = ElementArray::parse($content, $document, $position);
-            if ($elements) {
+            if($elements) {
                 $header = new self($elements->getRawContent(), null);//$document);
-            } else {
-                $header = new self(array(), $document);
+            }
+            else {
+                $header = new self([], $document);
             }
         }
-
-        if ($header) {
+        
+        if($header) {
             return $header;
-        } else {
+        }
+        else {
             // Build an empty header.
-            return new self(array(), $document);
+            return new self([], $document);
         }
     }
 }
